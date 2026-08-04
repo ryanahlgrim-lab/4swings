@@ -1,0 +1,41 @@
+name: Automated Alpaca Swing Trader
+
+on:
+  schedule:
+    # Runs at 21:20 UTC (4:20 PM EST) Monday through Friday
+    - cron: '20 21 * * 1-5'
+  workflow_dispatch: # Allows manual trigger execution from GitHub UI
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Daily Swing Trading Master Engine
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+        run: |
+          python main.py
+
+      # Keepalive Step: Prevents GitHub from disabling scheduled workflow after 60 days
+      - name: Keepalive Commit
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          date > keepalive.txt
+          git add keepalive.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Chore: GitHub Actions Keepalive [skip ci]" && git push)
